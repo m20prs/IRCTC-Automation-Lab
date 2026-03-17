@@ -1,0 +1,34 @@
+# Maven Build Output
+target/
+
+# Serenity BDD Reports & Logs
+bin/
+out/
+.gradle/
+build/
+serenity.properties
+velocity.log*
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.metadata/
+.classpath
+.project
+.settings/
+*.launch
+
+# VS Code
+.vscode/
+
+# MacOS System Files
+.DS_Store
+
+# User-specific Credentials (if stored in separate files)
+*.properties
+!serenity.conf
