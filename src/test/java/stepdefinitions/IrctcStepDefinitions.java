@@ -3,6 +3,7 @@ package stepdefinitions;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.en.And;
 import net.serenitybdd.annotations.Steps;
 import steps.IrctcUserSteps;
 
@@ -14,6 +15,11 @@ public class IrctcStepDefinitions {
     @Given("Maddie has initialized the IRCTC portal")
     public void step_initializePortal() {
         userSteps.initializeApp();
+    }
+
+    @And("Maddie closes the location pop-up if visible")
+    public void step_dismissPopups() {
+        userSteps.dismissLocationPopup();
     }
 
     @Then("Maddie verifies the page title contains {string}")
@@ -38,7 +44,7 @@ public class IrctcStepDefinitions {
 
     @Given("Maddie sets the travel date for {string}")
     public void step_setDate(String day) {
-        userSteps.setDateToTomorrow();
+        userSteps.setTatkalDate();
     }
 
     @Given("the quota is selected as {string}")
@@ -51,6 +57,7 @@ public class IrctcStepDefinitions {
         userSteps.initiateSearchAtTime(time);
     }
 
+    @Given("Maddie selects the first available train for {string}")
     @When("Maddie selects the first available train for {string}")
     public void step_setTravelClass(String travelClass) {
         userSteps.selectJourneyClass(travelClass);
@@ -62,14 +69,14 @@ public class IrctcStepDefinitions {
     }
 
     @When("Maddie chooses {string} as the payment method")
-    public void step_selectPayment(String method) {
-        // Method covered in enterDetailsAndSelectPayment for efficiency
+    public void step_choosePaymentMethod(String paymentMethod) {
+        // Payment method is handled as part of enterDetailsAndSelectPayment
+        System.out.println("[STEP] Payment method selected: " + paymentMethod);
     }
 
     @Then("Maddie should be navigated to the payment gateway page")
     public void step_verifyPaymentPage() {
-        org.hamcrest.MatcherAssert.assertThat(userSteps.getDriver().getCurrentUrl(), 
+        org.hamcrest.MatcherAssert.assertThat(userSteps.getDriver().getCurrentUrl(),
             org.hamcrest.Matchers.containsString("payment"));
     }
-    
 }

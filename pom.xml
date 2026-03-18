@@ -71,6 +71,9 @@
                     <includes>
                         <include>**/*TestSuite.java</include>
                     </includes>
+                    <!-- Enable parallel test execution -->
+                    <parallel>methods</parallel>
+                    <threadCount>4</threadCount>
                 </configuration>
                 <executions>
                     <execution>

@@ -23,15 +23,19 @@ public class IrctcUserSteps extends BaseStepDefinition {
 
     @Step("Dismiss location or notification alert")
     public void dismissLocationPopup() {
-        System.out.println("[STEP] Checking for location/notification alerts...");
+        System.out.println("[STEP] Checking for IRCTC page overlays...");
         try {
-            getAlert().accept();
-            System.out.println("[INFO] Browser alert accepted.");
+            // Target the HTML 'OK' button that IRCTC shows on login
+            String okButton = "//button[text()='OK']";
+            if ($(okButton).isVisible()) {
+                $(okButton).click();
+                System.out.println("[INFO] Page overlay dismissed.");
+            }
         } catch (Exception e) {
-            System.out.println("[INFO] No browser alert found or already dismissed.");
+            System.out.println("[INFO] No page overlay found.");
         }
     }
-
+    
     @Step("Check if page title contains: {0}")
     public void verifyTitleContent(String expectedText) {
         System.out.println("[STEP] Verifying page title contains: " + expectedText);
@@ -54,6 +58,10 @@ public class IrctcUserSteps extends BaseStepDefinition {
         
         System.out.println("[STEP] Clicking SIGN IN...");
         irctcPage.signInButton.click();
+        
+        // MENTOR FIX: Add a small wait to ensure the login transition finishes
+        System.out.println("[WAIT] Waiting for dashboard transition...");
+        waitFor(3).seconds();
     }
 
     @Step("Validate successful redirection to account dashboard")
@@ -63,21 +71,48 @@ public class IrctcUserSteps extends BaseStepDefinition {
     }
 
     @Step("Enter travel route and select stations")
-    public void setTravelRoute(String from, String to) {
-        System.out.println("[STEP] Setting 'FROM' station: " + from);
-        irctcPage.fromStationInput.type(from);
-        irctcPage.fromStationInput.sendKeys(Keys.TAB);
-        
-        System.out.println("[STEP] Setting 'TO' station: " + to);
-        irctcPage.toStationInput.type(to);
-        irctcPage.toStationInput.sendKeys(Keys.TAB);
-    }
+public void setTravelRoute(String from, String to) {
+    // MENTOR FIX: Use sendKeys to avoid the framework's internal clear() command
+    System.out.println("[STEP] Activating 'FROM' field and setting station: " + from);
+    irctcPage.fromStationInput.waitUntilClickable().click();
+    irctcPage.fromStationInput.sendKeys(from);
+    waitFor(1).seconds(); // Wait for auto-suggest
+    irctcPage.fromStationInput.sendKeys(Keys.TAB);
+    
+    System.out.println("[STEP] Activating 'TO' field and setting station: " + to);
+    irctcPage.toStationInput.waitUntilClickable().click();
+    irctcPage.toStationInput.sendKeys(to);
+    waitFor(1).seconds(); // Wait for auto-suggest
+    irctcPage.toStationInput.sendKeys(Keys.TAB);
+}
 
-    @Step("Set travel date to tomorrow")
-    public void setDateToTomorrow() {
-        String tomorrow = LocalDate.now().plusDays(1).format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-        System.out.println("[STEP] Setting travel date to tomorrow: " + tomorrow);
-        irctcPage.datePickerInput.typeAndEnter(tomorrow);
+    @Step("Set travel date for Tatkal (Tomorrow)")
+    public void setTatkalDate() {
+        // Dynamically calculate tomorrow's date
+        String tomorrow = LocalDate.now().plusDays(1)
+                                   .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        System.out.println("[STEP] Setting Tatkal journey date to: " + tomorrow);
+
+        try {
+            // Use JavaScript injection for maximum speed during Tatkal rush
+            evaluateJavascript("arguments[0].value = '" + tomorrow + "';", irctcPage.datePickerInput);
+            evaluateJavascript("arguments[0].dispatchEvent(new Event('change'))", irctcPage.datePickerInput);
+            evaluateJavascript("arguments[0].dispatchEvent(new Event('input'))", irctcPage.datePickerInput);
+
+            // Validate date was actually set
+            waitFor(500).milliseconds();
+            String actualValue = irctcPage.datePickerInput.getAttribute("value");
+            assertThat("Date not set correctly! Expected: " + tomorrow + ", Got: " + actualValue,
+                       actualValue, containsString(tomorrow));
+            System.out.println("[SUCCESS] Date set and validated to: " + actualValue);
+        } catch (Exception e) {
+            System.out.println("[ERROR] Date setting via JavaScript failed: " + e.getMessage());
+            System.out.println("[FALLBACK] Attempting date setting via UI interaction...");
+            irctcPage.datePickerInput.click();
+            irctcPage.datePickerInput.clear();
+            irctcPage.datePickerInput.type(tomorrow);
+        }
     }
 
     @Step("Select journey quota: {0}")
@@ -90,8 +125,17 @@ public class IrctcUserSteps extends BaseStepDefinition {
     @Step("Initiate search at precision time: {0}")
     public void initiateSearchAtTime(String targetTime) {
         System.out.println("[WAIT] Waiting for precision Tatkal time: " + targetTime);
-        while (!LocalTime.now().toString().contains(targetTime)) {
-            // Precise busy-wait
+        LocalTime target = LocalTime.parse(targetTime, DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        // Non-blocking wait instead of CPU-intensive busy-wait
+        while (LocalTime.now().isBefore(target)) {
+            try {
+                Thread.sleep(100); // Check every 100ms
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("[ERROR] Thread interrupted during Tatkal timing wait");
+                break;
+            }
         }
         System.out.println("[STEP] Time reached! Clicking Search button at " + LocalTime.now());
         irctcPage.searchButton.click();

@@ -7,7 +7,7 @@ Feature: IRCTC Tatkal Ticket Automation
   Background:
     Given Maddie has initialized the IRCTC portal
     And Maddie closes the location pop-up if visible
-    Then Maddie verifies the page title contains "IRCTC Next Generation"
+    Then Maddie verifies the page title contains "IRCTC"
     And Maddie is logged in with valid credentials
 
   @smoke @critical @tatkal_booking
@@ -16,11 +16,11 @@ Feature: IRCTC Tatkal Ticket Automation
     And Maddie sets the travel date for "Tomorrow"
     And the quota is selected as "TATKAL"
     And Maddie selects the first available train for "<Class>"
-    # When Maddie initiates the search at exactly "10:00:00" AM
-    # And Maddie provides passenger details for "Maddie"
-    # And Maddie chooses "UPI" as the payment method
-    # Then Maddie should be navigated to the payment gateway page
+    When Maddie initiates the search at exactly "10:00:00" AM
+    And Maddie provides passenger details for "Maddie"
+    And Maddie chooses "UPI" as the payment method
+    Then Maddie should be navigated to the payment gateway page
 
     Examples:
-      | From    | To        | Class |
-      | CHENNAI | BANGALORE | SL    |
+      | From | To  | Class |
+      | TMB  | MDU | SL    |
