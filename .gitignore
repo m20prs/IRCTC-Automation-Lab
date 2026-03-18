@@ -30,5 +30,8 @@ out/
 .DS_Store
 
 # User-specific Credentials (if stored in separate files)
-*.properties
+cred.properties
 !serenity.conf
+
+# DO NOT ignore the template
+!*.example
