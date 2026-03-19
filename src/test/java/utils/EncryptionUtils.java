@@ -17,16 +17,12 @@ public class EncryptionUtils {
     private static final int KEY_SIZE = 256;
     private static final String SECRET_KEY_ENV = "IRCTC_SECRET_KEY";
 
-    /**
-     * Legacy Base64 encoding - kept for backward compatibility with existing configs
-     */
+    /** Legacy Base64 encoding – kept for backward compatibility with existing configs. */
     public static String encode(String plainText) {
         return Base64.getEncoder().encodeToString(plainText.getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Base64 decoding for stored passwords
-     */
+    /** Base64 decoding for stored passwords. */
     public static String decode(String encodedText) {
         if (encodedText == null || encodedText.isEmpty()) {
             return "";
@@ -40,9 +36,7 @@ public class EncryptionUtils {
         }
     }
 
-    /**
-     * Generate a new AES secret key for encryption
-     */
+    /** Generate a new AES secret key for encryption. */
     public static String generateAesKey() throws Exception {
         KeyGenerator keyGen = KeyGenerator.getInstance(ALGORITHM);
         keyGen.init(KEY_SIZE);
@@ -50,26 +44,20 @@ public class EncryptionUtils {
         return Base64.getEncoder().encodeToString(secretKey.getEncoded());
     }
 
-    /**
-     * Encrypt password using AES encryption
-     */
+    /** Encrypt password using AES encryption. */
     public static String encryptAes(String plainText, String encodedKey) throws Exception {
         byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
         SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, ALGORITHM);
-
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.ENCRYPT_MODE, originalKey);
         byte[] encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    /**
-     * Decrypt password using AES encryption
-     */
+    /** Decrypt password using AES encryption. */
     public static String decryptAes(String encryptedText, String encodedKey) throws Exception {
         byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
         SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, ALGORITHM);
-
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.DECRYPT_MODE, originalKey);
         byte[] decodedBytes = Base64.getDecoder().decode(encryptedText);
@@ -77,9 +65,7 @@ public class EncryptionUtils {
         return new String(decryptedBytes, StandardCharsets.UTF_8);
     }
 
-    /**
-     * Get AES key from environment variable
-     */
+    /** Get AES key from environment variable. */
     public static String getAesKeyFromEnv() {
         String key = System.getenv(SECRET_KEY_ENV);
         if (key == null || key.isEmpty()) {

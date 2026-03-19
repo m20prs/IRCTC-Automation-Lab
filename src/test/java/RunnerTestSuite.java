@@ -4,9 +4,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(CucumberWithSerenity.class)
 @CucumberOptions(
-    plugin = {"pretty"},
-    features = "src/test/resources/features",
-    glue = {"stepdefinitions", "steps", "starter"},
-    tags = "@tatkal_booking"
+        plugin  = {"pretty"},
+        features = "src/test/resources/features",
+        glue    = {"stepdefinitions", "steps"},   // ← removed non-existent "starter" package
+        tags    = "@tatkal_booking"
 )
 public class RunnerTestSuite {}

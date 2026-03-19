@@ -1,11 +1,12 @@
 package stepdefinitions;
 
+import io.cucumber.java.Before;
 import net.serenitybdd.annotations.Managed;
 import net.serenitybdd.core.pages.PageObject;
 import net.thucydides.model.util.EnvironmentVariables;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import utils.EncryptionUtils;
+
 import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -21,28 +22,37 @@ public class BaseStepDefinition extends PageObject {
     protected static final String CONF_USER = "user.data.irctc.username";
     protected static final String CONF_PASS = "user.data.irctc.password";
 
-    protected String username;
-    protected String decryptedPassword;
+    protected static String username;
+    protected static String decryptedPassword;
 
     // Retry configuration
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
+    /**
+     * Called once before every Scenario.
+     * Loads credentials and launches the IRCTC portal.
+     */
+    @Before
+    public void setUp() {
+        initializeCredentials();
+        launchIrctc();
+    }
+
     protected void initializeCredentials() {
-        // Attempt to load from credentials.properties file first
         try {
             Properties props = new Properties();
             props.load(new FileInputStream("credentials.properties"));
-            this.username = props.getProperty(CONF_USER);
+            username = props.getProperty(CONF_USER);
             String encoded = props.getProperty(CONF_PASS);
-            this.decryptedPassword = EncryptionUtils.decode(encoded);
-            System.out.println("[INFO] Successfully loaded credentials for: " + this.username);
+            decryptedPassword = EncryptionUtils.decode(encoded);
+            System.out.println("[INFO] Successfully loaded credentials for: " + username);
         } catch (Exception e) {
-            // Fallback to Serenity EnvironmentVariables if file loading fails
-            this.username = environmentVariables.optionalProperty(CONF_USER).orElse("maddie_default");
+            // Fallback to Serenity EnvironmentVariables
+            username = environmentVariables.optionalProperty(CONF_USER).orElse("default_user");
             String encoded = environmentVariables.optionalProperty(CONF_PASS).orElse("");
-            this.decryptedPassword = EncryptionUtils.decode(encoded);
-            System.out.println("[WARN] Could not find credentials.properties, using environment variables or defaults.");
+            decryptedPassword = EncryptionUtils.decode(encoded);
+            System.out.println("[WARN] credentials.properties not found – using environment variables.");
         }
     }
 
@@ -53,10 +63,7 @@ public class BaseStepDefinition extends PageObject {
     }
 
     /**
-     * Retry mechanism for flaky element interactions
-     * @param actionName Description of the action being retried
-     * @param action Callable that performs the action
-     * @return Result of the action
+     * Retry mechanism for flaky element interactions (returns a value).
      */
     protected <T> T retryAction(String actionName, Callable<T> action) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -80,9 +87,7 @@ public class BaseStepDefinition extends PageObject {
         return null;
     }
 
-    /**
-     * Retry mechanism with void actions
-     */
+    /** Retry mechanism for void actions. */
     protected void retryAction(String actionName, Runnable action) {
         retryAction(actionName, () -> {
             action.run();
@@ -90,21 +95,15 @@ public class BaseStepDefinition extends PageObject {
         });
     }
 
-    /**
-     * Get captcha wait time from configuration (configurable via serenity.conf)
-     */
     protected int getCaptchaWaitTime() {
         return Integer.parseInt(environmentVariables
-            .optionalProperty("captcha.wait.seconds")
-            .orElse("15"));
+                .optionalProperty("captcha.wait.seconds")
+                .orElse("15"));
     }
 
-    /**
-     * Get element timeout from configuration
-     */
     protected long getElementTimeout() {
         return Long.parseLong(environmentVariables
-            .optionalProperty("element.timeout")
-            .orElse("30000"));
+                .optionalProperty("element.timeout")
+                .orElse("30000"));
     }
 }
