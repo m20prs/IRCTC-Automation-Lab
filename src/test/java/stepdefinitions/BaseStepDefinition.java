@@ -11,6 +11,15 @@ import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
+/**
+ * Owns the @Before lifecycle hook AND shared utilities.
+ *
+ * Cucumber's rule: a class that defines @Before/@After must NOT be extended
+ * by any step-definition class. The fix: IrctcStepDefinitions no longer
+ * extends this class. It accesses shared state via @Steps-injected
+ * IrctcUserSteps, which *does* extend this class — and that is fine because
+ * IrctcUserSteps is a Serenity Steps class, not a Cucumber glue class.
+ */
 public class BaseStepDefinition extends PageObject {
 
     @Managed
@@ -19,36 +28,35 @@ public class BaseStepDefinition extends PageObject {
     protected EnvironmentVariables environmentVariables;
 
     public static final String IRCTC_URL = "https://www.irctc.co.in/nget/train-search";
-    protected static final String CONF_USER = "user.data.irctc.username";
-    protected static final String CONF_PASS = "user.data.irctc.password";
+    public static final String CONF_USER = "user.data.irctc.username";
+    public static final String CONF_PASS = "user.data.irctc.password";
 
-    protected static String username;
-    protected static String decryptedPassword;
+    // Public static so IrctcUserSteps (and any other Steps class) can read them
+    public static String username;
+    public static String decryptedPassword;
 
-    // Retry configuration
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
-    /**
-     * Called once before every Scenario.
-     * Loads credentials and launches the IRCTC portal.
-     */
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     @Before
     public void setUp() {
         initializeCredentials();
         launchIrctc();
     }
 
-    protected void initializeCredentials() {
+    // ── Credential Loading ────────────────────────────────────────────────────
+
+    public void initializeCredentials() {
         try {
             Properties props = new Properties();
             props.load(new FileInputStream("credentials.properties"));
             username = props.getProperty(CONF_USER);
             String encoded = props.getProperty(CONF_PASS);
             decryptedPassword = EncryptionUtils.decode(encoded);
-            System.out.println("[INFO] Successfully loaded credentials for: " + username);
+            System.out.println("[INFO] Credentials loaded for: " + username);
         } catch (Exception e) {
-            // Fallback to Serenity EnvironmentVariables
             username = environmentVariables.optionalProperty(CONF_USER).orElse("default_user");
             String encoded = environmentVariables.optionalProperty(CONF_PASS).orElse("");
             decryptedPassword = EncryptionUtils.decode(encoded);
@@ -56,15 +64,18 @@ public class BaseStepDefinition extends PageObject {
         }
     }
 
-    protected void launchIrctc() {
-        String targetUrl = environmentVariables.optionalProperty("webdriver.base.url").orElse(IRCTC_URL);
+    // ── Browser Launch ────────────────────────────────────────────────────────
+
+    public void launchIrctc() {
+        String targetUrl = environmentVariables
+                .optionalProperty("webdriver.base.url")
+                .orElse(IRCTC_URL);
         getDriver().manage().window().maximize();
         getDriver().get(targetUrl);
     }
 
-    /**
-     * Retry mechanism for flaky element interactions (returns a value).
-     */
+    // ── Retry Utilities ───────────────────────────────────────────────────────
+
     protected <T> T retryAction(String actionName, Callable<T> action) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -75,7 +86,7 @@ public class BaseStepDefinition extends PageObject {
                     System.out.println("[FAILED] " + actionName + " after " + MAX_RETRIES + " attempts");
                     throw new RuntimeException("[RETRY_EXHAUSTED] " + actionName, e);
                 }
-                System.out.println("[RETRY] " + actionName + " failed (attempt " + attempt + "): " + e.getMessage());
+                System.out.println("[RETRY] " + actionName + " – attempt " + attempt + ": " + e.getMessage());
                 try {
                     Thread.sleep(RETRY_DELAY_MS);
                 } catch (InterruptedException ie) {
@@ -87,13 +98,14 @@ public class BaseStepDefinition extends PageObject {
         return null;
     }
 
-    /** Retry mechanism for void actions. */
     protected void retryAction(String actionName, Runnable action) {
         retryAction(actionName, () -> {
             action.run();
             return null;
         });
     }
+
+    // ── Config Helpers ────────────────────────────────────────────────────────
 
     protected int getCaptchaWaitTime() {
         return Integer.parseInt(environmentVariables
